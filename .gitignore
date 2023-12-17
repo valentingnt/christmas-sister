@@ -1,0 +1,17 @@
+# Node.js dependencies
+node_modules/
+
+# Vercel
+.vercel/
+
+# Vite
+/dist/
+/.vite/
+
+# Yarn
+.yarn/
+.yarnrc
+.yarn-integrity
+
+# Three.js
+/build/
