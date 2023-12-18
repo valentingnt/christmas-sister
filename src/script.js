@@ -1,74 +1,45 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
-THREE.ColorManagement.enabled = false
-// const gui = new GUI()
-
-/**
- * Base
- */
-/**
- * HTML handling
- */
-function hideLoadingModal() {
-  const loadingModal = document.getElementById('loading-modal')
-
-  loadingModal.style.display = 'none'
-}
-
-// Motion handling
+// Constants
+const COLOR_MANAGEMENT_ENABLED = false
 const IS_IOS_SAFARI = typeof DeviceOrientationEvent.requestPermission === 'function'
+const ORIENTATION_SCALE_FACTOR = 60
+const ORIENTATION_MULTIPLIER = 2
+const WALL_COLOR = '#c8c6bf'
+const WALL_METALNESS = 0
+const WALL_ROUGHNESS = .8
 
-function handleMobileOrientation(event) {
-  const x = -event.gamma
-  const y = event.beta
-
-  cursor.x = (x / 60) * 2
-  cursor.y = (y / 60) * 2
-}
-
-// Gift modal button
+// HTML Elements
+const loadingModal = document.getElementById('loading-modal')
 const modalButton = document.getElementById('gift-btn')
 const modal = document.getElementById('modal')
+const canvas = document.querySelector('canvas.webgl')
 
 modalButton.addEventListener('click', dismissModal, { passive: true })
 
-function dismissModal() {
-  modal.style.display = 'none'
+// State
+let cursor = { x: 0, y: 0 }
+let canOpenGift = false
+let mixer = null
+let canPlayMixerAnimation = false
 
-  window.requestAnimationFrame(() => canOpenGift = true)
-
-  if (IS_IOS_SAFARI) {
-    DeviceOrientationEvent.requestPermission()
-      .then(permissionState => {
-        if (permissionState === 'granted') window.addEventListener('deviceorientation', handleMobileOrientation, { passive: true })
-      })
-      .catch(console.error);
-  } else window.addEventListener('deviceorientation', handleMobileOrientation, { passive: true })
-}
-
-// Canvas
-const canvas = document.querySelector('canvas.webgl')
+// THREE.js setup
+THREE.ColorManagement.enabled = COLOR_MANAGEMENT_ENABLED
 
 // Scene
 const scene = new THREE.Scene()
 
-/**
- * Textures
- */
+// Textures
 const textureLoader = new THREE.TextureLoader()
-
 const wrappedGiftTexture = textureLoader.load('./textures/wrapped_gift_paper.jpeg')
 wrappedGiftTexture.wrapS = THREE.RepeatWrapping
 wrappedGiftTexture.wrapT = THREE.RepeatWrapping
 wrappedGiftTexture.repeat.x = 5
 wrappedGiftTexture.repeat.y = 5
 
-/**
- * Lights
- */
+// Lights
 const ambientLight = new THREE.AmbientLight(0xffffff, .2)
-
 scene.add(ambientLight)
 
 const pointLight = new THREE.PointLight(0xffffff, .8)
@@ -79,23 +50,15 @@ pointLight.shadow.camera.far = 25
 pointLight.shadow.camera.fov = 50
 pointLight.shadow.bias = 0.001
 pointLight.shadow.mapSize.set(2048, 2048)
-
 scene.add(pointLight)
 
-/**
- * Models & objects
- */
+// Models & objects
 const gltfLoader = new GLTFLoader()
-
-let mixer = null
-let canPlayMixerAnimation = false
-let canOpenGift = false
 
 // Gift box
 gltfLoader.load(
   './models/gift-box-sis/gift-box-sis.gltf',
   (gltf) => {
-    console.log(gltf)
     gltf.scene.scale.set(2, 2, 2)
     gltf.scene.position.set(0, -1.5, 0)
     gltf.scene.rotation.y = Math.PI * 1.5
@@ -152,77 +115,23 @@ function onGiftClick(event) {
 
 window.addEventListener('click', onGiftClick, { passive: true })
 
-
 // Walls
-const wallRight = new THREE.Mesh(
-  new THREE.PlaneGeometry(50, 50),
-  new THREE.MeshStandardMaterial({
-    color: '#c8c6bf',
-    map: wrappedGiftTexture,
-    metalness: 0,
-    roughness: .8
-  })
-)
-wallRight.position.set(10, 0, -10)
-wallRight.rotation.y = Math.PI * 1.5
-wallRight.receiveShadow = true
+const wallMaterial = new THREE.MeshStandardMaterial({
+  color: WALL_COLOR,
+  map: wrappedGiftTexture,
+  metalness: WALL_METALNESS,
+  roughness: WALL_ROUGHNESS
+})
 
-const wallLeft = new THREE.Mesh(
-  new THREE.PlaneGeometry(30, 30),
-  new THREE.MeshStandardMaterial({
-    color: '#c8c6bf',
-    map: wrappedGiftTexture,
-    metalness: 0,
-    roughness: .8
-  })
-)
-wallLeft.position.set(-10, 0, -10)
-wallLeft.rotation.y = Math.PI * .5
-wallLeft.receiveShadow = true
-
-const roof = new THREE.Mesh(
-  new THREE.PlaneGeometry(30, 30),
-  new THREE.MeshStandardMaterial({
-    color: '#c8c6bf',
-    map: wrappedGiftTexture,
-    metalness: 0,
-    roughness: .8
-  })
-)
-roof.position.set(0, 5, -5)
-roof.rotation.x = Math.PI * .5
-roof.receiveShadow = true
-
-const floor = new THREE.Mesh(
-  new THREE.PlaneGeometry(30, 30),
-  new THREE.MeshStandardMaterial({
-    color: '#c8c6bf',
-    map: wrappedGiftTexture,
-    metalness: 0,
-    roughness: .8
-  })
-)
-floor.position.set(0, -5, -5)
-floor.rotation.x = Math.PI * -.5
-floor.receiveShadow = true
-
-const backgroundWall = new THREE.Mesh(
-  new THREE.PlaneGeometry(30, 30),
-  new THREE.MeshStandardMaterial({
-    color: '#c8c6bf',
-    map: wrappedGiftTexture,
-    metalness: 0,
-    roughness: .8
-  })
-)
-backgroundWall.position.set(0, 0, -3)
-backgroundWall.receiveShadow = true
+const wallRight = createMesh(new THREE.PlaneGeometry(50, 50), wallMaterial, [10, 0, -10], [0, Math.PI * 1.5, 0], true)
+const wallLeft = createMesh(new THREE.PlaneGeometry(30, 30), wallMaterial, [-10, 0, -10], [0, Math.PI * .5, 0], true)
+const roof = createMesh(new THREE.PlaneGeometry(30, 30), wallMaterial, [0, 5, -5], [Math.PI * .5, 0, 0], true)
+const floor = createMesh(new THREE.PlaneGeometry(30, 30), wallMaterial, [0, -5, -5], [Math.PI * -.5, 0, 0], true)
+const backgroundWall = createMesh(new THREE.PlaneGeometry(30, 30), wallMaterial, [0, 0, -3], [0, 0, 0], true)
 
 scene.add(wallRight, wallLeft, roof, floor, backgroundWall)
 
-/**
- * Sizes
- */
+// Sizes
 const sizes = {
   width: window.innerWidth,
   height: window.innerHeight
@@ -242,22 +151,11 @@ window.addEventListener('resize', () => {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 }, { passive: true })
 
-/**
- * Camera
- */
-// Base camera
-
+// Camera
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
 camera.position.set(1, 0, 10)
 
-const cursor = {
-  x: 0,
-  y: 0
-}
-
-/**
- * Renderer
- */
+// Renderer
 const renderer = new THREE.WebGLRenderer({
   canvas,
   antialias: true,
@@ -270,10 +168,7 @@ renderer.outputColorSpace = THREE.LinearSRGBColorSpace
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
-
-/**
- * Animate
- */
+// Animate
 const clock = new THREE.Clock()
 let previousTime = 0
 
@@ -302,3 +197,38 @@ const tick = () => {
 }
 
 tick()
+
+// Helper functions
+function createMesh(geometry, material, position, rotation, receiveShadow) {
+  const mesh = new THREE.Mesh(geometry, material)
+  mesh.position.set(...position)
+  mesh.rotation.set(...rotation)
+  mesh.receiveShadow = receiveShadow
+  return mesh
+}
+
+function hideLoadingModal() {
+  loadingModal.style.display = 'none'
+}
+
+function handleMobileOrientation(event) {
+  const x = -event.gamma
+  const y = event.beta
+
+  cursor.x = (x / ORIENTATION_SCALE_FACTOR) * ORIENTATION_MULTIPLIER
+  cursor.y = (y / ORIENTATION_SCALE_FACTOR) * ORIENTATION_MULTIPLIER
+}
+
+function dismissModal() {
+  modal.style.display = 'none'
+
+  window.requestAnimationFrame(() => canOpenGift = true)
+
+  if (IS_IOS_SAFARI) {
+    DeviceOrientationEvent.requestPermission()
+      .then(permissionState => {
+        if (permissionState === 'granted') window.addEventListener('deviceorientation', handleMobileOrientation, { passive: true })
+      })
+      .catch(console.error);
+  } else window.addEventListener('deviceorientation', handleMobileOrientation, { passive: true })
+}
