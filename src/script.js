@@ -93,11 +93,12 @@ let canOpenGift = false
 
 // Gift box
 gltfLoader.load(
-  './models/gift-box-dad/gift-box-dad.gltf',
+  './models/gift-box-sis/gift-box-sis.gltf',
   (gltf) => {
+    console.log(gltf)
     gltf.scene.scale.set(2, 2, 2)
     gltf.scene.position.set(0, -1.5, 0)
-    gltf.scene.rotation.y = Math.PI
+    gltf.scene.rotation.y = Math.PI * 1.5
     gltf.scene.castShadow = true
     gltf.scene.receiveShadow = true
 
@@ -106,17 +107,26 @@ gltfLoader.load(
     hideLoadingModal()
 
     mixer = new THREE.AnimationMixer(gltf.scene)
-    const animation1 = gltf.animations[0]
-    const animation2 = gltf.animations[1]
+    const [animation1, animation2, animation3, animation4] = gltf.animations
+
     const action1 = mixer.clipAction(animation1)
     const action2 = mixer.clipAction(animation2)
-
+    const action3 = mixer.clipAction(animation3)
+    const action4 = mixer.clipAction(animation4)
     action1.setLoop(THREE.LoopOnce)
     action2.setLoop(THREE.LoopOnce)
+    action3.setLoop(THREE.LoopOnce)
+    action4.setLoop(THREE.LoopOnce)
+
     action1.clampWhenFinished = true
     action2.clampWhenFinished = true
+    action3.clampWhenFinished = true
+    action4.clampWhenFinished = true
+
     action1.play()
     action2.play()
+    action3.play()
+    action4.play()
   })
 
 const raycaster = new THREE.Raycaster()
