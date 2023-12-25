@@ -95,10 +95,8 @@ gltfLoader.load(
 const raycaster = new THREE.Raycaster()
 const mouse = new THREE.Vector2()
 
-function onGiftClick(event) {
+function onGiftClick() {
   if (!canOpenGift) return
-  mouse.x = (event.clientX / sizes.width) * 2 - 1
-  mouse.y = - (event.clientY / sizes.height) * 2 + 1
 
   raycaster.setFromCamera(mouse, camera)
 
@@ -112,8 +110,6 @@ function onGiftClick(event) {
     window.removeEventListener('click', onGiftClick)
   }
 }
-
-window.addEventListener('click', onGiftClick, { passive: true })
 
 // Walls
 const wallMaterial = new THREE.MeshStandardMaterial({
@@ -223,6 +219,9 @@ function dismissModal() {
   modal.style.display = 'none'
 
   window.requestAnimationFrame(() => canOpenGift = true)
+
+  window.addEventListener('click', onGiftClick, { passive: true })
+  window.addEventListener('touchend', onGiftClick, { passive: true })
 
   if (IS_IOS_SAFARI) {
     DeviceOrientationEvent.requestPermission()
